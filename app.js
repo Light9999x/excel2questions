@@ -14,6 +14,7 @@ const els = {
   answerColumn: document.querySelector("#answerColumn"),
   optionStartColumn: document.querySelector("#optionStartColumn"),
   optionEndColumn: document.querySelector("#optionEndColumn"),
+  explanationColumn: document.querySelector("#explanationColumn"),
   categoryColumn: document.querySelector("#categoryColumn"),
   modeSelect: document.querySelector("#modeSelect"),
   limitInput: document.querySelector("#limitInput"),
@@ -30,6 +31,7 @@ const els = {
   choiceList: document.querySelector("#choiceList"),
   answerInput: document.querySelector("#answerInput"),
   feedback: document.querySelector("#feedback"),
+  explanation: document.querySelector("#explanation"),
   nextButton: document.querySelector("#nextButton"),
   finalScore: document.querySelector("#finalScore"),
   finalDetail: document.querySelector("#finalDetail"),
@@ -45,6 +47,7 @@ const aliases = {
   optionB: ["選項b", "選項2", "choiceb", "choice2", "optionb", "option2", "b"],
   optionC: ["選項c", "選項3", "choicec", "choice3", "optionc", "option3", "c"],
   optionD: ["選項d", "選項4", "choiced", "choice4", "optiond", "option4", "d"],
+  explanation: ["說明", "解析", "詳解", "explanation", "description", "note", "備註"],
   category: ["分類", "類別", "category", "章節", "單元"],
 };
 
@@ -64,6 +67,7 @@ for (const select of [
   els.answerColumn,
   els.optionStartColumn,
   els.optionEndColumn,
+  els.explanationColumn,
   els.categoryColumn,
 ]) {
   select.addEventListener("change", rebuildCategoryFilter);
@@ -169,6 +173,11 @@ function setupColumns() {
   const optionEnd = guessColumn(columns, aliases.optionD) || optionStart;
   setOptions(els.optionStartColumn, [emptyOption, ...columns], optionStart);
   setOptions(els.optionEndColumn, [emptyOption, ...columns], optionEnd);
+  setOptions(
+    els.explanationColumn,
+    [emptyOption, ...columns],
+    guessColumn(columns, aliases.explanation)
+  );
   setOptions(els.categoryColumn, [emptyOption, ...columns], guessColumn(columns, aliases.category));
 }
 
@@ -223,6 +232,7 @@ function startQuiz() {
   const category = els.categoryFilter.value;
   const questionColumn = els.questionColumn.value;
   const answerColumn = els.answerColumn.value;
+  const explanationColumn = els.explanationColumn.value;
   const columns = Object.keys(state.rows[0] || {});
   const optionColumns = getColumnRange(
     columns,
@@ -237,6 +247,7 @@ function startQuiz() {
       question: row[questionColumn],
       answer: row[answerColumn],
       options: optionColumns.map((column) => row[column]).filter(Boolean),
+      explanation: explanationColumn ? row[explanationColumn] : "",
       category: categoryColumn ? row[categoryColumn] : "",
     }));
 
@@ -283,6 +294,8 @@ function showQuestion() {
   els.quizCard.classList.remove("hidden");
   els.feedback.className = "feedback hidden";
   els.feedback.textContent = "";
+  els.explanation.className = "explanation hidden";
+  els.explanation.textContent = "";
   els.answerInput.value = "";
   els.answerInput.classList.toggle("hidden", current.options.length > 0);
   els.nextButton.disabled = true;
@@ -307,19 +320,21 @@ function renderChoices(current) {
       state.selectedChoice = choice;
       document.querySelectorAll(".choice").forEach((item) => item.classList.remove("selected"));
       button.classList.add("selected");
-      submitAnswer();
+      submitAnswer(index);
     });
     els.choiceList.append(button);
   });
 }
 
-function submitAnswer() {
+function submitAnswer(selectedIndex = -1) {
   const current = state.questions[state.currentIndex];
   if (!current || state.answers.length > state.currentIndex) return;
   const userAnswer = current.options.length ? state.selectedChoice : els.answerInput.value.trim();
   if (!userAnswer) return;
 
-  const correct = isCorrect(userAnswer, current.answer);
+  const correct = current.options.length
+    ? isCorrectOption(selectedIndex, current.answer)
+    : isCorrectText(userAnswer, current.answer);
   if (correct) state.score += 1;
 
   state.answers.push({
@@ -329,7 +344,13 @@ function submitAnswer() {
   });
 
   els.feedback.className = `feedback ${correct ? "correct" : "wrong"}`;
-  els.feedback.textContent = correct ? "答對了" : `答錯了\n正確答案：${current.answer}`;
+  els.feedback.textContent = correct
+    ? "答對了"
+    : `答錯了\n正確答案：${formatCorrectAnswer(current)}`;
+  if (current.explanation) {
+    els.explanation.className = "explanation";
+    els.explanation.textContent = current.explanation;
+  }
   document.querySelectorAll(".choice").forEach((button) => {
     button.disabled = true;
   });
@@ -337,13 +358,25 @@ function submitAnswer() {
   updateCounts();
 }
 
-function isCorrect(userAnswer, answer) {
+function isCorrectOption(selectedIndex, answer) {
+  const answerNumber = Number.parseInt(String(answer).trim(), 10);
+  return Number.isInteger(answerNumber) && selectedIndex === answerNumber - 1;
+}
+
+function isCorrectText(userAnswer, answer) {
   const normalize = (value) => String(value).trim().replace(/\s+/g, "").toLowerCase();
   const acceptedAnswers = String(answer)
     .split(/[|；;]/)
     .map(normalize)
     .filter(Boolean);
   return acceptedAnswers.includes(normalize(userAnswer));
+}
+
+function formatCorrectAnswer(question) {
+  if (!question.options.length) return question.answer;
+  const answerNumber = Number.parseInt(String(question.answer).trim(), 10);
+  const option = question.options[answerNumber - 1];
+  return option ? `${answerNumber}. ${option}` : question.answer;
 }
 
 function nextQuestion() {

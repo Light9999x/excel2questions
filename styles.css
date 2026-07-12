@@ -325,6 +325,24 @@ textarea {
   color: var(--warn);
 }
 
+.explanation {
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: #f2f7f5;
+  color: var(--ink);
+  padding: 14px 16px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.explanation::before {
+  content: "說明";
+  display: block;
+  margin-bottom: 6px;
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+
 .actions {
   display: flex;
   gap: 10px;
