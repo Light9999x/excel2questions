@@ -13,6 +13,10 @@ const els = {
   questionColumn: document.querySelector("#questionColumn"),
   answerColumn: document.querySelector("#answerColumn"),
   optionColumn: document.querySelector("#optionColumn"),
+  optionColumnA: document.querySelector("#optionColumnA"),
+  optionColumnB: document.querySelector("#optionColumnB"),
+  optionColumnC: document.querySelector("#optionColumnC"),
+  optionColumnD: document.querySelector("#optionColumnD"),
   categoryColumn: document.querySelector("#categoryColumn"),
   modeSelect: document.querySelector("#modeSelect"),
   limitInput: document.querySelector("#limitInput"),
@@ -42,6 +46,10 @@ const aliases = {
   question: ["題目", "問題", "question", "q", "題幹", "題庫"],
   answer: ["答案", "正解", "answer", "a", "解答", "正確答案"],
   options: ["選項", "choices", "options", "choice", "選擇題選項"],
+  optionA: ["選項a", "選項1", "choicea", "choice1", "optiona", "option1", "a"],
+  optionB: ["選項b", "選項2", "choiceb", "choice2", "optionb", "option2", "b"],
+  optionC: ["選項c", "選項3", "choicec", "choice3", "optionc", "option3", "c"],
+  optionD: ["選項d", "選項4", "choiced", "choice4", "optiond", "option4", "d"],
   category: ["分類", "類別", "category", "章節", "單元"],
 };
 
@@ -51,7 +59,16 @@ els.submitButton.addEventListener("click", submitAnswer);
 els.nextButton.addEventListener("click", nextQuestion);
 els.restartButton.addEventListener("click", startQuiz);
 
-for (const select of [els.questionColumn, els.answerColumn, els.optionColumn, els.categoryColumn]) {
+for (const select of [
+  els.questionColumn,
+  els.answerColumn,
+  els.optionColumn,
+  els.optionColumnA,
+  els.optionColumnB,
+  els.optionColumnC,
+  els.optionColumnD,
+  els.categoryColumn,
+]) {
   select.addEventListener("change", rebuildCategoryFilter);
 }
 
@@ -152,6 +169,10 @@ function setupColumns() {
   setOptions(els.questionColumn, columns, guessColumn(columns, aliases.question));
   setOptions(els.answerColumn, columns, guessColumn(columns, aliases.answer));
   setOptions(els.optionColumn, [emptyOption, ...columns], guessColumn(columns, aliases.options));
+  setOptions(els.optionColumnA, [emptyOption, ...columns], guessColumn(columns, aliases.optionA));
+  setOptions(els.optionColumnB, [emptyOption, ...columns], guessColumn(columns, aliases.optionB));
+  setOptions(els.optionColumnC, [emptyOption, ...columns], guessColumn(columns, aliases.optionC));
+  setOptions(els.optionColumnD, [emptyOption, ...columns], guessColumn(columns, aliases.optionD));
   setOptions(els.categoryColumn, [emptyOption, ...columns], guessColumn(columns, aliases.category));
 }
 
@@ -167,7 +188,11 @@ function setOptions(select, items, selectedValue) {
 }
 
 function guessColumn(columns, names) {
-  return columns.find((column) => names.includes(column.toLowerCase())) || "";
+  return columns.find((column) => names.includes(normalizeColumnName(column))) || "";
+}
+
+function normalizeColumnName(value) {
+  return String(value).trim().replace(/\s+/g, "").replace(/[._-]/g, "").toLowerCase();
 }
 
 function rebuildCategoryFilter() {
@@ -203,6 +228,12 @@ function startQuiz() {
   const questionColumn = els.questionColumn.value;
   const answerColumn = els.answerColumn.value;
   const optionColumn = els.optionColumn.value;
+  const optionColumns = [
+    els.optionColumnA.value,
+    els.optionColumnB.value,
+    els.optionColumnC.value,
+    els.optionColumnD.value,
+  ].filter(Boolean);
 
   let pool = state.rows
     .filter((row) => row[questionColumn] && row[answerColumn])
@@ -210,7 +241,7 @@ function startQuiz() {
     .map((row) => ({
       question: row[questionColumn],
       answer: row[answerColumn],
-      options: parseOptions(row[optionColumn]),
+      options: collectOptions(row, optionColumn, optionColumns),
       category: categoryColumn ? row[categoryColumn] : "",
     }));
 
@@ -233,6 +264,20 @@ function parseOptions(value) {
     .split(/\r?\n|[|；;]/)
     .map((option) => option.replace(/^[A-Z]\s*[.)、:：]\s*/i, "").trim())
     .filter(Boolean);
+}
+
+function collectOptions(row, combinedColumn, separateColumns) {
+  const separateOptions = separateColumns.map((column) => row[column]).filter(Boolean);
+  if (separateOptions.length > 1) {
+    return separateOptions;
+  }
+
+  const combinedOptions = parseOptions(row[combinedColumn]);
+  if (combinedOptions.length > 1) {
+    return combinedOptions;
+  }
+
+  return separateOptions.length ? separateOptions : combinedOptions;
 }
 
 function shuffle(items) {
