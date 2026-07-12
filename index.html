@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Excel 題庫出題器</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">Quiz Builder</p>
+          <h1>Excel 題庫出題器</h1>
+        </div>
+        <div class="summary">
+          <span id="questionCount">0 題</span>
+          <span id="scoreSummary">尚未開始</span>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="controls" aria-label="題庫控制">
+          <label class="upload-zone" for="fileInput">
+            <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" />
+            <span class="upload-icon">+</span>
+            <span class="upload-title">上傳 Excel 題庫</span>
+            <span class="upload-subtitle">支援 .xlsx、.xls、.csv</span>
+          </label>
+          <div id="statusLine" class="status-line hidden"></div>
+
+          <div class="panel">
+            <h2>欄位對應</h2>
+            <label>
+              題目
+              <select id="questionColumn"></select>
+            </label>
+            <label>
+              答案
+              <select id="answerColumn"></select>
+            </label>
+            <label>
+              選項
+              <select id="optionColumn"></select>
+            </label>
+            <label>
+              分類
+              <select id="categoryColumn"></select>
+            </label>
+          </div>
+
+          <div class="panel">
+            <h2>出題設定</h2>
+            <label>
+              出題方式
+              <select id="modeSelect">
+                <option value="random">隨機</option>
+                <option value="sequence">依序</option>
+              </select>
+            </label>
+            <label>
+              每次題數
+              <input id="limitInput" type="number" min="1" value="10" />
+            </label>
+            <label>
+              分類篩選
+              <select id="categoryFilter">
+                <option value="">全部</option>
+              </select>
+            </label>
+            <button id="startButton" class="primary" disabled>開始出題</button>
+          </div>
+        </aside>
+
+        <section class="quiz-area" aria-live="polite">
+          <div id="emptyState" class="empty-state">
+            <div class="empty-mark">Q</div>
+            <h2>等待題庫</h2>
+            <p>上傳含有題目與答案欄位的 Excel 檔案後，這裡會開始出題。</p>
+          </div>
+
+          <article id="quizCard" class="quiz-card hidden">
+            <div class="quiz-meta">
+              <span id="progressText">第 1 / 1 題</span>
+              <span id="categoryText"></span>
+            </div>
+            <h2 id="questionText"></h2>
+            <div id="choiceList" class="choice-list"></div>
+            <textarea id="answerInput" rows="4" placeholder="輸入答案"></textarea>
+            <div id="feedback" class="feedback hidden"></div>
+            <div class="actions">
+              <button id="submitButton" class="primary">送出答案</button>
+              <button id="nextButton" disabled>下一題</button>
+            </div>
+          </article>
+
+          <article id="resultCard" class="result-card hidden">
+            <h2>測驗結果</h2>
+            <div class="result-score">
+              <strong id="finalScore">0%</strong>
+              <span id="finalDetail">0 / 0</span>
+            </div>
+            <div id="wrongList" class="wrong-list"></div>
+            <button id="restartButton" class="primary">重新出題</button>
+          </article>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
