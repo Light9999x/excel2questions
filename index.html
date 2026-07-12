@@ -42,24 +42,12 @@
               <select id="answerColumn"></select>
             </label>
             <label>
-              選項（單欄）
-              <select id="optionColumn"></select>
+              選項起始欄
+              <select id="optionStartColumn"></select>
             </label>
             <label>
-              選項 A
-              <select id="optionColumnA"></select>
-            </label>
-            <label>
-              選項 B
-              <select id="optionColumnB"></select>
-            </label>
-            <label>
-              選項 C
-              <select id="optionColumnC"></select>
-            </label>
-            <label>
-              選項 D
-              <select id="optionColumnD"></select>
+              選項結束欄
+              <select id="optionEndColumn"></select>
             </label>
             <label>
               分類
@@ -104,10 +92,9 @@
             </div>
             <h2 id="questionText"></h2>
             <div id="choiceList" class="choice-list"></div>
-            <textarea id="answerInput" rows="4" placeholder="輸入答案"></textarea>
+            <textarea id="answerInput" rows="4" placeholder="輸入答案後按 Enter"></textarea>
             <div id="feedback" class="feedback hidden"></div>
             <div class="actions">
-              <button id="submitButton" class="primary">送出答案</button>
               <button id="nextButton" disabled>下一題</button>
             </div>
           </article>

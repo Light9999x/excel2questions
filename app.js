@@ -12,11 +12,8 @@ const els = {
   statusLine: document.querySelector("#statusLine"),
   questionColumn: document.querySelector("#questionColumn"),
   answerColumn: document.querySelector("#answerColumn"),
-  optionColumn: document.querySelector("#optionColumn"),
-  optionColumnA: document.querySelector("#optionColumnA"),
-  optionColumnB: document.querySelector("#optionColumnB"),
-  optionColumnC: document.querySelector("#optionColumnC"),
-  optionColumnD: document.querySelector("#optionColumnD"),
+  optionStartColumn: document.querySelector("#optionStartColumn"),
+  optionEndColumn: document.querySelector("#optionEndColumn"),
   categoryColumn: document.querySelector("#categoryColumn"),
   modeSelect: document.querySelector("#modeSelect"),
   limitInput: document.querySelector("#limitInput"),
@@ -33,7 +30,6 @@ const els = {
   choiceList: document.querySelector("#choiceList"),
   answerInput: document.querySelector("#answerInput"),
   feedback: document.querySelector("#feedback"),
-  submitButton: document.querySelector("#submitButton"),
   nextButton: document.querySelector("#nextButton"),
   finalScore: document.querySelector("#finalScore"),
   finalDetail: document.querySelector("#finalDetail"),
@@ -45,7 +41,6 @@ const emptyOption = { label: "不使用", value: "" };
 const aliases = {
   question: ["題目", "問題", "question", "q", "題幹", "題庫"],
   answer: ["答案", "正解", "answer", "a", "解答", "正確答案"],
-  options: ["選項", "choices", "options", "choice", "選擇題選項"],
   optionA: ["選項a", "選項1", "choicea", "choice1", "optiona", "option1", "a"],
   optionB: ["選項b", "選項2", "choiceb", "choice2", "optionb", "option2", "b"],
   optionC: ["選項c", "選項3", "choicec", "choice3", "optionc", "option3", "c"],
@@ -55,18 +50,20 @@ const aliases = {
 
 els.fileInput.addEventListener("change", handleFile);
 els.startButton.addEventListener("click", startQuiz);
-els.submitButton.addEventListener("click", submitAnswer);
+els.answerInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    submitAnswer();
+  }
+});
 els.nextButton.addEventListener("click", nextQuestion);
 els.restartButton.addEventListener("click", startQuiz);
 
 for (const select of [
   els.questionColumn,
   els.answerColumn,
-  els.optionColumn,
-  els.optionColumnA,
-  els.optionColumnB,
-  els.optionColumnC,
-  els.optionColumnD,
+  els.optionStartColumn,
+  els.optionEndColumn,
   els.categoryColumn,
 ]) {
   select.addEventListener("change", rebuildCategoryFilter);
@@ -168,11 +165,10 @@ function setupColumns() {
   const columns = Object.keys(state.rows[0] || {});
   setOptions(els.questionColumn, columns, guessColumn(columns, aliases.question));
   setOptions(els.answerColumn, columns, guessColumn(columns, aliases.answer));
-  setOptions(els.optionColumn, [emptyOption, ...columns], guessColumn(columns, aliases.options));
-  setOptions(els.optionColumnA, [emptyOption, ...columns], guessColumn(columns, aliases.optionA));
-  setOptions(els.optionColumnB, [emptyOption, ...columns], guessColumn(columns, aliases.optionB));
-  setOptions(els.optionColumnC, [emptyOption, ...columns], guessColumn(columns, aliases.optionC));
-  setOptions(els.optionColumnD, [emptyOption, ...columns], guessColumn(columns, aliases.optionD));
+  const optionStart = guessColumn(columns, aliases.optionA);
+  const optionEnd = guessColumn(columns, aliases.optionD) || optionStart;
+  setOptions(els.optionStartColumn, [emptyOption, ...columns], optionStart);
+  setOptions(els.optionEndColumn, [emptyOption, ...columns], optionEnd);
   setOptions(els.categoryColumn, [emptyOption, ...columns], guessColumn(columns, aliases.category));
 }
 
@@ -227,13 +223,12 @@ function startQuiz() {
   const category = els.categoryFilter.value;
   const questionColumn = els.questionColumn.value;
   const answerColumn = els.answerColumn.value;
-  const optionColumn = els.optionColumn.value;
-  const optionColumns = [
-    els.optionColumnA.value,
-    els.optionColumnB.value,
-    els.optionColumnC.value,
-    els.optionColumnD.value,
-  ].filter(Boolean);
+  const columns = Object.keys(state.rows[0] || {});
+  const optionColumns = getColumnRange(
+    columns,
+    els.optionStartColumn.value,
+    els.optionEndColumn.value
+  );
 
   let pool = state.rows
     .filter((row) => row[questionColumn] && row[answerColumn])
@@ -241,7 +236,7 @@ function startQuiz() {
     .map((row) => ({
       question: row[questionColumn],
       answer: row[answerColumn],
-      options: collectOptions(row, optionColumn, optionColumns),
+      options: optionColumns.map((column) => row[column]).filter(Boolean),
       category: categoryColumn ? row[categoryColumn] : "",
     }));
 
@@ -258,26 +253,11 @@ function startQuiz() {
   showQuestion();
 }
 
-function parseOptions(value) {
-  if (!value) return [];
-  return String(value)
-    .split(/\r?\n|[|；;]/)
-    .map((option) => option.replace(/^[A-Z]\s*[.)、:：]\s*/i, "").trim())
-    .filter(Boolean);
-}
-
-function collectOptions(row, combinedColumn, separateColumns) {
-  const separateOptions = separateColumns.map((column) => row[column]).filter(Boolean);
-  if (separateOptions.length > 1) {
-    return separateOptions;
-  }
-
-  const combinedOptions = parseOptions(row[combinedColumn]);
-  if (combinedOptions.length > 1) {
-    return combinedOptions;
-  }
-
-  return separateOptions.length ? separateOptions : combinedOptions;
+function getColumnRange(columns, startColumn, endColumn) {
+  const startIndex = columns.indexOf(startColumn);
+  const endIndex = columns.indexOf(endColumn);
+  if (startIndex < 0 || endIndex < startIndex) return [];
+  return columns.slice(startIndex, endIndex + 1);
 }
 
 function shuffle(items) {
@@ -305,7 +285,6 @@ function showQuestion() {
   els.feedback.textContent = "";
   els.answerInput.value = "";
   els.answerInput.classList.toggle("hidden", current.options.length > 0);
-  els.submitButton.disabled = false;
   els.nextButton.disabled = true;
   els.progressText.textContent = `第 ${state.currentIndex + 1} / ${state.questions.length} 題`;
   els.categoryText.textContent = current.category || "未分類";
@@ -324,9 +303,11 @@ function renderChoices(current) {
     button.className = "choice";
     button.innerHTML = `<span class="key">${String.fromCharCode(65 + index)}</span><span>${escapeHtml(choice)}</span>`;
     button.addEventListener("click", () => {
+      if (state.answers.length > state.currentIndex) return;
       state.selectedChoice = choice;
       document.querySelectorAll(".choice").forEach((item) => item.classList.remove("selected"));
       button.classList.add("selected");
+      submitAnswer();
     });
     els.choiceList.append(button);
   });
@@ -334,6 +315,7 @@ function renderChoices(current) {
 
 function submitAnswer() {
   const current = state.questions[state.currentIndex];
+  if (!current || state.answers.length > state.currentIndex) return;
   const userAnswer = current.options.length ? state.selectedChoice : els.answerInput.value.trim();
   if (!userAnswer) return;
 
@@ -348,7 +330,9 @@ function submitAnswer() {
 
   els.feedback.className = `feedback ${correct ? "correct" : "wrong"}`;
   els.feedback.textContent = correct ? "答對了" : `答錯了\n正確答案：${current.answer}`;
-  els.submitButton.disabled = true;
+  document.querySelectorAll(".choice").forEach((button) => {
+    button.disabled = true;
+  });
   els.nextButton.disabled = false;
   updateCounts();
 }
