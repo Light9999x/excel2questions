@@ -8,8 +8,16 @@ const state = {
 };
 
 const els = {
+  appLayout: document.querySelector("#appLayout"),
+  sidebarToggle: document.querySelector("#sidebarToggle"),
+  navItems: document.querySelectorAll(".nav-item"),
+  pagePanels: document.querySelectorAll("[data-page-panel]"),
+  pageTitle: document.querySelector("#pageTitle"),
+  pageEyebrow: document.querySelector("#pageEyebrow"),
   fileInput: document.querySelector("#fileInput"),
   statusLine: document.querySelector("#statusLine"),
+  mappingState: document.querySelector("#mappingState"),
+  goToQuizButton: document.querySelector("#goToQuizButton"),
   questionColumn: document.querySelector("#questionColumn"),
   answerColumn: document.querySelector("#answerColumn"),
   optionStartColumn: document.querySelector("#optionStartColumn"),
@@ -21,6 +29,7 @@ const els = {
   categoryFilter: document.querySelector("#categoryFilter"),
   startButton: document.querySelector("#startButton"),
   questionCount: document.querySelector("#questionCount"),
+  sidebarQuestionCount: document.querySelector("#sidebarQuestionCount"),
   scoreSummary: document.querySelector("#scoreSummary"),
   emptyState: document.querySelector("#emptyState"),
   quizCard: document.querySelector("#quizCard"),
@@ -39,6 +48,11 @@ const els = {
   restartButton: document.querySelector("#restartButton"),
 };
 
+const pages = {
+  quiz: { title: "開始測驗", eyebrow: "Quiz" },
+  settings: { title: "題庫設定", eyebrow: "Question bank" },
+};
+
 const emptyOption = { label: "不使用", value: "" };
 const aliases = {
   question: ["題目", "問題", "question", "q", "題幹", "題庫"],
@@ -53,6 +67,17 @@ const aliases = {
 
 els.fileInput.addEventListener("change", handleFile);
 els.startButton.addEventListener("click", startQuiz);
+els.goToQuizButton.addEventListener("click", () => switchPage("quiz"));
+els.sidebarToggle.addEventListener("click", toggleSidebar);
+els.navItems.forEach((item) => {
+  item.addEventListener("click", () => switchPage(item.dataset.page));
+});
+document.querySelectorAll("[data-go-page]").forEach((item) => {
+  item.addEventListener("click", () => switchPage(item.dataset.goPage));
+});
+window.addEventListener("hashchange", () => {
+  switchPage(location.hash.slice(1), false);
+});
 els.answerInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
@@ -61,6 +86,13 @@ els.answerInput.addEventListener("keydown", (event) => {
 });
 els.nextButton.addEventListener("click", nextQuestion);
 els.restartButton.addEventListener("click", startQuiz);
+
+if (localStorage.getItem("quizSidebarCollapsed") === "true") {
+  els.appLayout.classList.add("sidebar-collapsed");
+  els.sidebarToggle.title = "展開側欄";
+  els.sidebarToggle.setAttribute("aria-label", "展開側欄");
+}
+switchPage(location.hash.slice(1) || "quiz", false);
 
 for (const select of [
   els.questionColumn,
@@ -90,6 +122,7 @@ function handleFile(event) {
       rebuildCategoryFilter();
       updateCounts();
       els.startButton.disabled = true;
+      updateMappingState();
       setStatus(error.message, true);
     }
   };
@@ -119,6 +152,27 @@ function loadRows(rows) {
   rebuildCategoryFilter();
   updateCounts();
   els.startButton.disabled = !canStart();
+  updateMappingState();
+}
+
+function switchPage(page, updateHash = true) {
+  const targetPage = pages[page] ? page : "quiz";
+  els.navItems.forEach((item) => item.classList.toggle("active", item.dataset.page === targetPage));
+  els.pagePanels.forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.pagePanel === targetPage);
+  });
+  els.pageTitle.textContent = pages[targetPage].title;
+  els.pageEyebrow.textContent = pages[targetPage].eyebrow;
+  if (updateHash && location.hash !== `#${targetPage}`) {
+    history.pushState(null, "", `#${targetPage}`);
+  }
+}
+
+function toggleSidebar() {
+  const collapsed = els.appLayout.classList.toggle("sidebar-collapsed");
+  localStorage.setItem("quizSidebarCollapsed", String(collapsed));
+  els.sidebarToggle.title = collapsed ? "展開側欄" : "收縮側欄";
+  els.sidebarToggle.setAttribute("aria-label", els.sidebarToggle.title);
 }
 
 function parseCsv(text) {
@@ -219,6 +273,14 @@ function rebuildCategoryFilter() {
     ? previous
     : "";
   els.startButton.disabled = !canStart();
+  els.goToQuizButton.disabled = !canStart();
+  updateMappingState();
+}
+
+function updateMappingState() {
+  const ready = canStart();
+  els.mappingState.textContent = ready ? "設定完成" : state.rows.length ? "請確認欄位" : "等待上傳";
+  els.mappingState.classList.toggle("ready", ready);
 }
 
 function canStart() {
@@ -227,6 +289,8 @@ function canStart() {
 
 function startQuiz() {
   if (!canStart()) return;
+
+  switchPage("quiz");
 
   const categoryColumn = els.categoryColumn.value;
   const category = els.categoryFilter.value;
@@ -426,6 +490,7 @@ function showEmpty(message) {
 
 function updateCounts() {
   els.questionCount.textContent = `${state.rows.length} 題`;
+  els.sidebarQuestionCount.textContent = String(state.rows.length);
   els.scoreSummary.textContent = state.questions.length
     ? `得分 ${state.score} / ${state.questions.length}`
     : "尚未開始";
