@@ -450,16 +450,41 @@ h1 {
   font-size: 1.35rem;
   font-weight: 400;
   text-align: center;
+  transition: transform 220ms ease;
 }
 
 .wrong-note-question[aria-expanded="true"]::after {
   content: "−";
+  transform: rotate(180deg);
 }
 
 .wrong-note-details {
   display: grid;
+  grid-template-rows: 0fr;
+  border-top: 1px solid transparent;
+  opacity: 0;
+  transition:
+    grid-template-rows 280ms ease,
+    border-color 280ms ease,
+    opacity 200ms ease;
+}
+
+.wrong-note-details-inner {
+  display: grid;
+  min-height: 0;
   gap: 16px;
-  border-top: 1px solid var(--line);
+  overflow: hidden;
+  padding: 0 16px;
+  transition: padding 280ms ease;
+}
+
+.wrong-note.expanded .wrong-note-details {
+  grid-template-rows: 1fr;
+  border-top-color: var(--line);
+  opacity: 1;
+}
+
+.wrong-note.expanded .wrong-note-details-inner {
   padding: 16px;
 }
 
@@ -507,6 +532,14 @@ h1 {
 
 .danger:hover {
   background: #fff0e9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrong-note-details,
+  .wrong-note-details-inner,
+  .wrong-note-question::after {
+    transition-duration: 0.01ms;
+  }
 }
 
 .upload-zone,

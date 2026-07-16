@@ -169,6 +169,7 @@ function switchPage(page, updateHash = true) {
   });
   els.pageTitle.textContent = pages[targetPage].title;
   els.pageEyebrow.textContent = pages[targetPage].eyebrow;
+  els.scoreSummary.classList.toggle("hidden", targetPage === "notes");
   if (targetPage === "notes") renderWrongNotes();
   if (updateHash && location.hash !== `#${targetPage}`) {
     history.pushState(null, "", `#${targetPage}`);
@@ -546,26 +547,32 @@ function createWrongNote(note) {
   questionButton.textContent = note.question;
 
   const details = document.createElement("div");
-  details.className = "wrong-note-details hidden";
+  details.className = "wrong-note-details";
+  details.setAttribute("aria-hidden", "true");
+  details.inert = true;
   const options = note.options.length
     ? `<ol class="note-options">${note.options.map((option) => `<li>${escapeHtml(option)}</li>`).join("")}</ol>`
     : '<div class="note-options">此題為輸入題</div>';
   details.innerHTML = `
-    ${options}
-    <div class="note-actions">
-      <button class="toggle-note-answer" type="button">顯示答案與說明</button>
-      <button class="danger remove-wrong-note" type="button">移除錯題</button>
-    </div>
-    <div class="note-answer hidden">
-      <strong>正確答案：${escapeHtml(formatCorrectAnswer(note))}</strong>
-      ${note.explanation ? `<span>說明：${escapeHtml(note.explanation)}</span>` : ""}
+    <div class="wrong-note-details-inner">
+      ${options}
+      <div class="note-actions">
+        <button class="toggle-note-answer" type="button">顯示答案與說明</button>
+        <button class="danger remove-wrong-note" type="button">移除錯題</button>
+      </div>
+      <div class="note-answer hidden">
+        <strong>正確答案：${escapeHtml(formatCorrectAnswer(note))}</strong>
+        ${note.explanation ? `<span>說明：${escapeHtml(note.explanation)}</span>` : ""}
+      </div>
     </div>
   `;
 
   questionButton.addEventListener("click", () => {
     const expanded = questionButton.getAttribute("aria-expanded") === "true";
     questionButton.setAttribute("aria-expanded", String(!expanded));
-    details.classList.toggle("hidden", expanded);
+    details.setAttribute("aria-hidden", String(expanded));
+    details.inert = expanded;
+    article.classList.toggle("expanded", !expanded);
   });
 
   const answerButton = details.querySelector(".toggle-note-answer");
