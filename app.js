@@ -15,6 +15,7 @@ const els = {
   pagePanels: document.querySelectorAll("[data-page-panel]"),
   pageTitle: document.querySelector("#pageTitle"),
   pageEyebrow: document.querySelector("#pageEyebrow"),
+  summary: document.querySelector(".summary"),
   wrongNoteCount: document.querySelector("#wrongNoteCount"),
   wrongNotesEmpty: document.querySelector("#wrongNotesEmpty"),
   wrongNotesList: document.querySelector("#wrongNotesList"),
@@ -169,7 +170,7 @@ function switchPage(page, updateHash = true) {
   });
   els.pageTitle.textContent = pages[targetPage].title;
   els.pageEyebrow.textContent = pages[targetPage].eyebrow;
-  els.scoreSummary.classList.toggle("hidden", targetPage === "notes");
+  els.summary.classList.toggle("hidden", targetPage === "notes");
   if (targetPage === "notes") renderWrongNotes();
   if (updateHash && location.hash !== `#${targetPage}`) {
     history.pushState(null, "", `#${targetPage}`);
@@ -568,11 +569,7 @@ function createWrongNote(note) {
   `;
 
   questionButton.addEventListener("click", () => {
-    const expanded = questionButton.getAttribute("aria-expanded") === "true";
-    questionButton.setAttribute("aria-expanded", String(!expanded));
-    details.setAttribute("aria-hidden", String(expanded));
-    details.inert = expanded;
-    article.classList.toggle("expanded", !expanded);
+    animateWrongNote(article, questionButton, details);
   });
 
   const answerButton = details.querySelector(".toggle-note-answer");
@@ -591,6 +588,48 @@ function createWrongNote(note) {
 
   article.append(questionButton, details);
   return article;
+}
+
+function animateWrongNote(article, questionButton, details) {
+  const opening = questionButton.getAttribute("aria-expanded") !== "true";
+
+  details.getAnimations().forEach((animation) => {
+    try {
+      animation.commitStyles();
+    } catch {
+      // The current computed size below remains a safe fallback.
+    }
+    animation.cancel();
+  });
+
+  const startHeight = details.getBoundingClientRect().height;
+  const startOpacity = Number.parseFloat(getComputedStyle(details).opacity) || 0;
+  const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 320;
+
+  questionButton.setAttribute("aria-expanded", String(opening));
+  details.setAttribute("aria-hidden", String(!opening));
+  details.inert = !opening;
+
+  if (opening) article.classList.add("expanded");
+  const endHeight = opening ? details.scrollHeight : 0;
+  const animation = details.animate(
+    [
+      { height: `${startHeight}px`, opacity: startOpacity },
+      { height: `${endHeight}px`, opacity: opening ? 1 : 0 },
+    ],
+    {
+      duration,
+      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+      fill: "forwards",
+    }
+  );
+
+  animation.onfinish = () => {
+    details.style.height = opening ? "auto" : "0px";
+    details.style.opacity = opening ? "1" : "0";
+    if (!opening) article.classList.remove("expanded");
+    animation.cancel();
+  };
 }
 
 function nextQuestion() {

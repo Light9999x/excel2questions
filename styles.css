@@ -459,33 +459,20 @@ h1 {
 }
 
 .wrong-note-details {
-  display: grid;
-  grid-template-rows: 0fr;
+  height: 0;
+  overflow: hidden;
   border-top: 1px solid transparent;
   opacity: 0;
-  transition:
-    grid-template-rows 280ms ease,
-    border-color 280ms ease,
-    opacity 200ms ease;
 }
 
 .wrong-note-details-inner {
   display: grid;
-  min-height: 0;
   gap: 16px;
-  overflow: hidden;
-  padding: 0 16px;
-  transition: padding 280ms ease;
+  padding: 16px;
 }
 
 .wrong-note.expanded .wrong-note-details {
-  grid-template-rows: 1fr;
   border-top-color: var(--line);
-  opacity: 1;
-}
-
-.wrong-note.expanded .wrong-note-details-inner {
-  padding: 16px;
 }
 
 .note-options {
@@ -535,8 +522,6 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wrong-note-details,
-  .wrong-note-details-inner,
   .wrong-note-question::after {
     transition-duration: 0.01ms;
   }
