@@ -6,7 +6,6 @@
     <title>Excel 題庫出題器</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
-    <script src="https://unpkg.com/lucide@1.24.0/dist/umd/lucide.min.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
@@ -16,16 +15,16 @@
           <div class="brand-mark">Q</div>
           <span class="brand-label">題庫出題器</span>
           <button id="sidebarToggle" class="icon-button" type="button" title="收縮側欄" aria-label="收縮側欄">
-            <i data-lucide="panel-left-close">‹</i>
+            <span class="icon-glyph icon-panel" aria-hidden="true"></span>
           </button>
         </div>
         <nav class="sidebar-nav">
           <button class="nav-item active" type="button" data-page="quiz" title="開始測驗">
-            <span class="nav-icon"><i data-lucide="play">▶</i></span>
+            <span class="nav-icon"><span class="icon-glyph icon-play" aria-hidden="true"></span></span>
             <span class="nav-label">開始測驗</span>
           </button>
           <button class="nav-item" type="button" data-page="settings" title="題庫設定">
-            <span class="nav-icon"><i data-lucide="settings">⚙</i></span>
+            <span class="nav-icon"><span class="icon-glyph icon-settings" aria-hidden="true"></span></span>
             <span class="nav-label">題庫設定</span>
           </button>
         </nav>

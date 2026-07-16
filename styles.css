@@ -119,12 +119,33 @@ button:disabled {
   font-size: 1.25rem;
 }
 
-.icon-button svg,
-.nav-icon svg {
+.icon-glyph {
   display: block;
   width: 20px;
   height: 20px;
-  stroke-width: 2;
+  flex: 0 0 20px;
+  background: currentColor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 20px 20px;
+  mask-size: 20px 20px;
+}
+
+.icon-play {
+  -webkit-mask-image: url("icons/circle-play.svg");
+  mask-image: url("icons/circle-play.svg");
+}
+
+.icon-settings {
+  -webkit-mask-image: url("icons/settings.svg");
+  mask-image: url("icons/settings.svg");
+}
+
+.icon-panel {
+  -webkit-mask-image: url("icons/panel-left-close.svg");
+  mask-image: url("icons/panel-left-close.svg");
 }
 
 .sidebar-nav {
