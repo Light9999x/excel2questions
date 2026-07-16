@@ -53,6 +53,10 @@ const pages = {
   settings: { title: "題庫設定", eyebrow: "Question bank" },
 };
 
+if (window.lucide) {
+  window.lucide.createIcons();
+}
+
 const emptyOption = { label: "不使用", value: "" };
 const aliases = {
   question: ["題目", "問題", "question", "q", "題幹", "題庫"],
