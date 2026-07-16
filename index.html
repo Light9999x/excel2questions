@@ -27,6 +27,10 @@
             <span class="nav-icon"><span class="icon-glyph icon-settings" aria-hidden="true"></span></span>
             <span class="nav-label">題庫設定</span>
           </button>
+          <button class="nav-item" type="button" data-page="notes" title="錯題筆記">
+            <span class="nav-icon"><span class="icon-glyph icon-notes" aria-hidden="true"></span></span>
+            <span class="nav-label">錯題筆記 <span id="wrongNoteCount">0</span></span>
+          </button>
         </nav>
         <div class="sidebar-status">
           <span id="sidebarQuestionCount">0</span>
@@ -106,6 +110,15 @@
               </article>
             </section>
           </div>
+        </section>
+
+        <section id="wrongNotesPage" class="app-page" data-page-panel="notes">
+          <div id="wrongNotesEmpty" class="notes-empty">
+            <span class="icon-glyph icon-notes" aria-hidden="true"></span>
+            <h2>目前沒有錯題</h2>
+            <p>答錯的題目會自動整理到這裡。</p>
+          </div>
+          <div id="wrongNotesList" class="wrong-notes-list"></div>
         </section>
 
         <section id="settingsPage" class="app-page" data-page-panel="settings">

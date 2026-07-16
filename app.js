@@ -5,6 +5,7 @@ const state = {
   score: 0,
   selectedChoice: "",
   answers: [],
+  wrongNotes: loadWrongNotes(),
 };
 
 const els = {
@@ -14,6 +15,9 @@ const els = {
   pagePanels: document.querySelectorAll("[data-page-panel]"),
   pageTitle: document.querySelector("#pageTitle"),
   pageEyebrow: document.querySelector("#pageEyebrow"),
+  wrongNoteCount: document.querySelector("#wrongNoteCount"),
+  wrongNotesEmpty: document.querySelector("#wrongNotesEmpty"),
+  wrongNotesList: document.querySelector("#wrongNotesList"),
   fileInput: document.querySelector("#fileInput"),
   statusLine: document.querySelector("#statusLine"),
   mappingState: document.querySelector("#mappingState"),
@@ -51,6 +55,7 @@ const els = {
 const pages = {
   quiz: { title: "開始測驗", eyebrow: "Quiz" },
   settings: { title: "題庫設定", eyebrow: "Question bank" },
+  notes: { title: "錯題筆記", eyebrow: "Review notes" },
 };
 
 const emptyOption = { label: "不使用", value: "" };
@@ -93,6 +98,7 @@ if (localStorage.getItem("quizSidebarCollapsed") === "true") {
   els.sidebarToggle.setAttribute("aria-label", "展開側欄");
 }
 switchPage(location.hash.slice(1) || "quiz", false);
+renderWrongNotes();
 
 for (const select of [
   els.questionColumn,
@@ -163,6 +169,7 @@ function switchPage(page, updateHash = true) {
   });
   els.pageTitle.textContent = pages[targetPage].title;
   els.pageEyebrow.textContent = pages[targetPage].eyebrow;
+  if (targetPage === "notes") renderWrongNotes();
   if (updateHash && location.hash !== `#${targetPage}`) {
     history.pushState(null, "", `#${targetPage}`);
   }
@@ -400,6 +407,7 @@ function submitAnswer(selectedIndex = -1) {
     ? isCorrectOption(selectedIndex, current.answer)
     : isCorrectText(userAnswer, current.answer);
   if (correct) state.score += 1;
+  if (!correct) addWrongNote(current, userAnswer);
 
   state.answers.push({
     ...current,
@@ -441,6 +449,141 @@ function formatCorrectAnswer(question) {
   const answerNumber = Number.parseInt(String(question.answer).trim(), 10);
   const option = question.options[answerNumber - 1];
   return option ? `${answerNumber}. ${option}` : question.answer;
+}
+
+function loadWrongNotes() {
+  try {
+    const stored = JSON.parse(localStorage.getItem("quizWrongNotes") || "[]");
+    return Array.isArray(stored)
+      ? stored.map((note) => ({
+          ...note,
+          options: Array.isArray(note.options) ? note.options : [],
+          category: note.category || "",
+          explanation: note.explanation || "",
+        }))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveWrongNotes() {
+  try {
+    localStorage.setItem("quizWrongNotes", JSON.stringify(state.wrongNotes));
+  } catch {
+    // Keep the current session usable if browser storage is unavailable.
+  }
+  updateWrongNoteCount();
+}
+
+function getWrongNoteKey(question) {
+  return [question.category, question.question, ...question.options].join("\u001f");
+}
+
+function addWrongNote(question, userAnswer) {
+  const key = getWrongNoteKey(question);
+  const note = {
+    key,
+    question: question.question,
+    answer: question.answer,
+    options: question.options,
+    explanation: question.explanation,
+    category: question.category,
+    userAnswer,
+    updatedAt: Date.now(),
+  };
+  const existingIndex = state.wrongNotes.findIndex((item) => item.key === key);
+  if (existingIndex >= 0) state.wrongNotes[existingIndex] = note;
+  else state.wrongNotes.push(note);
+  saveWrongNotes();
+}
+
+function updateWrongNoteCount() {
+  els.wrongNoteCount.textContent = String(state.wrongNotes.length);
+}
+
+function renderWrongNotes() {
+  updateWrongNoteCount();
+  els.wrongNotesList.innerHTML = "";
+  els.wrongNotesEmpty.classList.toggle("hidden", state.wrongNotes.length > 0);
+  els.wrongNotesList.classList.toggle("hidden", state.wrongNotes.length === 0);
+  if (!state.wrongNotes.length) return;
+
+  const sorted = [...state.wrongNotes].sort((a, b) => {
+    const categoryA = a.category || "未分類";
+    const categoryB = b.category || "未分類";
+    if (categoryA === "未分類" && categoryB !== "未分類") return 1;
+    if (categoryB === "未分類" && categoryA !== "未分類") return -1;
+    return categoryA.localeCompare(categoryB, "zh-Hant") || a.question.localeCompare(b.question, "zh-Hant");
+  });
+
+  const groups = new Map();
+  for (const note of sorted) {
+    const category = note.category || "未分類";
+    if (!groups.has(category)) groups.set(category, []);
+    groups.get(category).push(note);
+  }
+
+  for (const [category, notes] of groups) {
+    const section = document.createElement("section");
+    section.className = "wrong-note-group";
+    const heading = document.createElement("h2");
+    heading.textContent = category;
+    section.append(heading);
+    notes.forEach((note) => section.append(createWrongNote(note)));
+    els.wrongNotesList.append(section);
+  }
+}
+
+function createWrongNote(note) {
+  const article = document.createElement("article");
+  article.className = "wrong-note";
+
+  const questionButton = document.createElement("button");
+  questionButton.type = "button";
+  questionButton.className = "wrong-note-question";
+  questionButton.setAttribute("aria-expanded", "false");
+  questionButton.textContent = note.question;
+
+  const details = document.createElement("div");
+  details.className = "wrong-note-details hidden";
+  const options = note.options.length
+    ? `<ol class="note-options">${note.options.map((option) => `<li>${escapeHtml(option)}</li>`).join("")}</ol>`
+    : '<div class="note-options">此題為輸入題</div>';
+  details.innerHTML = `
+    ${options}
+    <div class="note-actions">
+      <button class="toggle-note-answer" type="button">顯示答案與說明</button>
+      <button class="danger remove-wrong-note" type="button">移除錯題</button>
+    </div>
+    <div class="note-answer hidden">
+      <strong>正確答案：${escapeHtml(formatCorrectAnswer(note))}</strong>
+      ${note.explanation ? `<span>說明：${escapeHtml(note.explanation)}</span>` : ""}
+    </div>
+  `;
+
+  questionButton.addEventListener("click", () => {
+    const expanded = questionButton.getAttribute("aria-expanded") === "true";
+    questionButton.setAttribute("aria-expanded", String(!expanded));
+    details.classList.toggle("hidden", expanded);
+  });
+
+  const answerButton = details.querySelector(".toggle-note-answer");
+  const answerBlock = details.querySelector(".note-answer");
+  answerButton.addEventListener("click", () => {
+    const willShow = answerBlock.classList.contains("hidden");
+    answerBlock.classList.toggle("hidden", !willShow);
+    answerButton.textContent = willShow ? "隱藏答案與說明" : "顯示答案與說明";
+  });
+
+  details.querySelector(".remove-wrong-note").addEventListener("click", () => {
+    state.wrongNotes = state.wrongNotes.filter((item) => item.key !== note.key);
+    saveWrongNotes();
+    renderWrongNotes();
+  });
+
+  article.append(questionButton, details);
+  return article;
 }
 
 function nextQuestion() {
@@ -491,6 +634,7 @@ function showEmpty(message) {
 function updateCounts() {
   els.questionCount.textContent = `${state.rows.length} 題`;
   els.sidebarQuestionCount.textContent = String(state.rows.length);
+  updateWrongNoteCount();
   els.scoreSummary.textContent = state.questions.length
     ? `得分 ${state.score} / ${state.questions.length}`
     : "尚未開始";
