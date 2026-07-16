@@ -444,18 +444,38 @@ h1 {
   font-weight: 700;
 }
 
-.wrong-note-question::after {
-  content: "+";
-  color: var(--accent-dark);
-  font-size: 1.35rem;
-  font-weight: 400;
-  text-align: center;
-  transition: transform 220ms ease;
+.wrong-note-toggle {
+  position: relative;
+  display: block;
+  width: 20px;
+  height: 20px;
+  justify-self: center;
 }
 
-.wrong-note-question[aria-expanded="true"]::after {
-  content: "−";
-  transform: rotate(180deg);
+.wrong-note-toggle::before,
+.wrong-note-toggle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent-dark);
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+}
+
+.wrong-note-toggle::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+  transition:
+    transform 220ms ease,
+    opacity 180ms ease;
+}
+
+.wrong-note-question[aria-expanded="true"] .wrong-note-toggle::after {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(180deg);
 }
 
 .wrong-note-details {
@@ -522,7 +542,7 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wrong-note-question::after {
+  .wrong-note-toggle::after {
     transition-duration: 0.01ms;
   }
 }

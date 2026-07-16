@@ -545,7 +545,12 @@ function createWrongNote(note) {
   questionButton.type = "button";
   questionButton.className = "wrong-note-question";
   questionButton.setAttribute("aria-expanded", "false");
-  questionButton.textContent = note.question;
+  const questionLabel = document.createElement("span");
+  questionLabel.textContent = note.question;
+  const toggleMark = document.createElement("span");
+  toggleMark.className = "wrong-note-toggle";
+  toggleMark.setAttribute("aria-hidden", "true");
+  questionButton.append(questionLabel, toggleMark);
 
   const details = document.createElement("div");
   details.className = "wrong-note-details";
